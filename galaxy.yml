@@ -1,0 +1,21 @@
+namespace: cosmic_chimps
+name: bella
+version: 0.2.0
+readme: README.md
+authors:
+  - Cosmic Chimps <hello@cosmicchimps.io>
+description: Ansible collection for Bella Baxter secret management
+license:
+  - MIT
+tags:
+  - secrets
+  - vault
+  - security
+  - bella_baxter
+  - pki
+  - tls
+  - certificates
+repository: https://github.com/cosmic-chimps/bella-baxter
+documentation: https://github.com/cosmic-chimps/bella-baxter/tree/main/apps/sdk/ansible
+issues: https://github.com/cosmic-chimps/bella-baxter/issues
+dependencies: {}

@@ -1,0 +1,74 @@
+name: Publish Ansible Collection to Galaxy
+
+# Ansible Galaxy has no package-registry URL — collections are published via
+# ansible-galaxy CLI authenticated with an API key from Galaxy.
+# Collection: cosmic_chimps.bella  (namespace.name in galaxy.yml)
+#
+# Version is set by release-sdk.yml bumping galaxy.yml in the monorepo,
+# then sync-sdk-ansible.yml pushing to this repo. This workflow just builds
+# and publishes — it never modifies galaxy.yml itself.
+#
+# Secrets and variables are read from the "production" GitHub environment.
+# Required (set in repo/org Settings → Environments → production):
+#   secrets.ANSIBLE_GALAXY_API_KEY  — token from galaxy.ansible.com → Collections → API key
+#   secrets.SLACK_WEBHOOK_URL       — Slack incoming webhook URL
+#   vars.BELLA_BAXTER_API_URL       — production API base URL (optional, defaults to https://api.bella-baxter.io)
+
+on:
+  workflow_dispatch:
+
+env:
+  SDK_FOLDER: .
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set production API URL
+        env:
+          BELLA_BAXTER_API_URL: ${{ vars.BELLA_BAXTER_API_URL || 'https://api.bella-baxter.io' }}
+        run: |
+          if [ "$BELLA_BAXTER_API_URL" != "https://api.bella-baxter.io" ]; then
+            grep -rl 'https://api.bella-baxter.io' . \
+              --include='*.py' \
+              | xargs sed -i "s|https://api.bella-baxter.io|${BELLA_BAXTER_API_URL}|g"
+          fi
+
+      - name: Install ansible-core
+        run: pip install ansible-core
+
+      - name: Show version being published
+        run: python3 -c "import yaml; d=yaml.safe_load(open('galaxy.yml')); print('Publishing cosmic_chimps.bella', d['version'])"
+
+      - name: Build collection archive
+        working-directory: ${{ env.SDK_FOLDER }}
+        run: ansible-galaxy collection build --output-path ./dist --force
+
+      - name: Publish to Ansible Galaxy
+        working-directory: ${{ env.SDK_FOLDER }}
+        run: |
+          TARBALL=$(ls dist/cosmic_chimps-bella-*.tar.gz | head -1)
+          ansible-galaxy collection publish "$TARBALL" --api-key "${{ secrets.ANSIBLE_GALAXY_API_KEY }}"
+
+  notify:
+    runs-on: ubuntu-latest
+    environment: production
+    needs: publish
+    if: always()
+    steps:
+      - uses: slackapi/slack-github-action@v3.0.1
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: webhook-trigger
+          payload: |
+            text: "${{ needs.publish.result == 'success' && '✅' || '❌' }} *Ansible Galaxy publish (cosmic_chimps.bella)*: ${{ needs.publish.result }}\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

@@ -1,0 +1,215 @@
+---
+# provision_tls.yml
+#
+# Bella Baxter — PKI / TLS Certificate Provisioning Playbook
+#
+# This playbook does two things:
+#
+#   1. PKI ROLE SETUP (hosts: localhost)
+#      Ensures a PKI role exists in Bella Baxter for the target domain.
+#      Idempotent — only creates the role if it does not already exist.
+#
+#   2. TLS PROVISIONING (hosts: web_servers)
+#      Issues a TLS certificate for each host, distributes the cert, private
+#      key, and CA chain to the correct system paths, and reloads the web
+#      server (nginx / apache2) if needed.
+#
+# Prerequisites:
+#   pip install bella-baxter
+#
+#   Set environment variables (or pass as extra vars):
+#       BELLA_BAXTER_URL    — e.g. https://api.bella-baxter.io
+#       BELLA_API_KEY       — bax-... API key
+#       BELLA_PROJECT_SLUG  — project slug (e.g. my-app)
+#       BELLA_ENV_SLUG      — environment slug (e.g. production)
+#       BELLA_PKI_ROLE      — PKI role name (e.g. internal-services)
+#       BELLA_PKI_DOMAIN    — CN / domain (e.g. api.internal)
+#
+# Usage:
+#   ansible-playbook provision_tls.yml \
+#     -e "bella_project_slug=my-app bella_env_slug=production" \
+#     -e "bella_pki_role=internal-services bella_pki_domain=api.internal" \
+#     -i inventory.ini
+#
+# Inventory groups:
+#   [web_servers]  — machines that will receive TLS certificates
+
+- name: Ensure PKI role exists in Bella Baxter
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    bella_baxter_url: "{{ lookup('env', 'BELLA_BAXTER_URL') | default(baxter_url | default('')) }}"
+    bella_api_key: "{{ lookup('env', 'BELLA_API_KEY') | default('') }}"
+    bella_project_slug: "{{ lookup('env', 'BELLA_PROJECT_SLUG') | default('') }}"
+    bella_env_slug: "{{ lookup('env', 'BELLA_ENV_SLUG') | default('') }}"
+    bella_pki_role: "{{ lookup('env', 'BELLA_PKI_ROLE') | default(pki_role | default('internal-services')) }}"
+    # Primary domain for the role's allowed_domains (plain domain, no wildcard)
+    bella_pki_domain: "{{ lookup('env', 'BELLA_PKI_DOMAIN') | default(pki_domain | default('internal')) }}"
+
+  pre_tasks:
+    - name: Validate required variables
+      ansible.builtin.fail:
+        msg: "{{ item }} must be set (env var or extra var)"
+      when: vars[item] == ''
+      loop:
+        - bella_baxter_url
+        - bella_api_key
+        - bella_project_slug
+        - bella_env_slug
+
+  tasks:
+    - name: Ensure PKI role exists
+      cosmic_chimps.bella.pki_role:
+        baxter_url: "{{ bella_baxter_url }}"
+        api_key: "{{ bella_api_key }}"
+        project_slug: "{{ bella_project_slug }}"
+        environment_slug: "{{ bella_env_slug }}"
+        name: "{{ bella_pki_role }}"
+        # Allow subdomains of the target domain (e.g. api.internal, db.internal)
+        allowed_domains: "{{ bella_pki_domain }}"
+        allow_subdomains: true
+        default_ttl: 720h   # 30 days
+        max_ttl: 8760h      # 1 year
+        key_type: rsa
+        key_bits: 2048
+        state: present
+      register: pki_role_result
+
+    - name: Show PKI role status
+      ansible.builtin.debug:
+        msg: "PKI role '{{ bella_pki_role }}': {{ pki_role_result.msg }}"
+
+
+- name: Provision TLS certificates on web servers
+  hosts: web_servers
+  become: true
+  gather_facts: true
+
+  vars:
+    bella_baxter_url: "{{ lookup('env', 'BELLA_BAXTER_URL') | default(baxter_url | default('')) }}"
+    bella_api_key: "{{ lookup('env', 'BELLA_API_KEY') | default('') }}"
+    bella_project_slug: "{{ lookup('env', 'BELLA_PROJECT_SLUG') | default('') }}"
+    bella_env_slug: "{{ lookup('env', 'BELLA_ENV_SLUG') | default('') }}"
+    bella_pki_role: "{{ lookup('env', 'BELLA_PKI_ROLE') | default(pki_role | default('internal-services')) }}"
+    # CN for this host — defaults to ansible_fqdn (e.g. api.internal)
+    tls_common_name: "{{ common_name | default(ansible_fqdn) }}"
+    # Where to write TLS files on the target host
+    tls_cert_dir: /etc/ssl/bella
+    tls_cert_path: "{{ tls_cert_dir }}/server.crt"
+    tls_key_path: "{{ tls_cert_dir }}/server.key"
+    tls_chain_path: "{{ tls_cert_dir }}/ca-chain.pem"
+
+  pre_tasks:
+    - name: Validate required variables
+      ansible.builtin.fail:
+        msg: "{{ item }} must be set (env var or extra var)"
+      when: vars[item] == ''
+      loop:
+        - bella_baxter_url
+        - bella_api_key
+        - bella_project_slug
+        - bella_env_slug
+
+    - name: Fetch PKI CA info (for CA chain distribution)
+      ansible.builtin.set_fact:
+        bella_pki_ca: >-
+          {{ lookup('cosmic_chimps.bella.pki_ca',
+               project_slug=bella_project_slug,
+               environment_slug=bella_env_slug,
+               baxter_url=bella_baxter_url,
+               api_key=bella_api_key) }}
+      delegate_to: localhost
+      run_once: true
+
+    - name: Issue TLS certificate for this host
+      ansible.builtin.set_fact:
+        bella_tls: >-
+          {{ lookup('cosmic_chimps.bella.pki_issue',
+               common_name=tls_common_name,
+               role_name=bella_pki_role,
+               ttl='720h',
+               project_slug=bella_project_slug,
+               environment_slug=bella_env_slug,
+               baxter_url=bella_baxter_url,
+               api_key=bella_api_key) }}
+      delegate_to: localhost
+
+  tasks:
+    - name: Ensure TLS directory exists
+      ansible.builtin.file:
+        path: "{{ tls_cert_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Write TLS certificate
+      ansible.builtin.copy:
+        dest: "{{ tls_cert_path }}"
+        content: "{{ bella_tls.certificate }}"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload web server
+
+    - name: Write TLS private key (restricted permissions)
+      ansible.builtin.copy:
+        dest: "{{ tls_key_path }}"
+        content: "{{ bella_tls.private_key }}"
+        owner: root
+        group: root
+        mode: "0600"
+      notify: Reload web server
+
+    - name: Write CA chain
+      ansible.builtin.copy:
+        dest: "{{ tls_chain_path }}"
+        content: "{{ bella_tls.ca_chain }}"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload web server
+
+    - name: Write CA certificate to system trust store (Debian/Ubuntu)
+      ansible.builtin.copy:
+        dest: /usr/local/share/ca-certificates/bella-ca.crt
+        content: "{{ bella_pki_ca.certificate }}"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Update system CA trust
+      when: ansible_os_family == "Debian"
+
+    - name: Write CA certificate to system trust store (RedHat/CentOS)
+      ansible.builtin.copy:
+        dest: /etc/pki/ca-trust/source/anchors/bella-ca.crt
+        content: "{{ bella_pki_ca.certificate }}"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Update system CA trust
+      when: ansible_os_family == "RedHat"
+
+    - name: Show certificate info
+      ansible.builtin.debug:
+        msg: |
+          ✓ TLS certificate provisioned for {{ tls_common_name }}
+            Serial:     {{ bella_tls.serial_number }}
+            Cert:       {{ tls_cert_path }}
+            Key:        {{ tls_key_path }}
+            CA chain:   {{ tls_chain_path }}
+            Expires:    {{ bella_tls.expiration | default('unknown') }}
+
+  handlers:
+    - name: Reload web server
+      ansible.builtin.service:
+        name: "{{ 'nginx' if (ansible_facts.packages is defined and 'nginx' in ansible_facts.packages) else 'apache2' }}"
+        state: reloaded
+      ignore_errors: true
+
+    - name: Update system CA trust
+      ansible.builtin.command: >-
+        {{ 'update-ca-certificates' if ansible_os_family == 'Debian' else 'update-ca-trust' }}
+      changed_when: true
