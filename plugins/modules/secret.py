@@ -24,8 +24,8 @@ short_description: Manage secrets in Bella Baxter
 description:
   - Creates, updates (upserts), or deletes secrets in the Bella Baxter secret
     management gateway.
-  - The module is idempotent for C(state=absent): if the key does not exist the
-    task reports C(changed=false) and makes no API call.
+  - When C(state=absent) and the key does not exist the task reports
+    C(changed=false) and makes no API call (idempotent).
   - Supports Ansible check mode (C(--check)) — no API calls are made.
 author:
   - Cosmic Chimps <hello@cosmicchimps.io>
@@ -44,7 +44,6 @@ options:
     type: str
     required: true
     no_log: true
-    description:
   environment_id:
     description:
       - UUID of the target Bella Baxter environment.
