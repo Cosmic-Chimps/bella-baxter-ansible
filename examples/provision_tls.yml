@@ -61,7 +61,7 @@
 
   tasks:
     - name: Ensure PKI role exists
-      cosmic_chimps.bella.pki_role:
+      jjchiw.bella_baxter.pki_role:
         baxter_url: "{{ bella_baxter_url }}"
         api_key: "{{ bella_api_key }}"
         project_slug: "{{ bella_project_slug }}"
@@ -115,7 +115,7 @@
     - name: Fetch PKI CA info (for CA chain distribution)
       ansible.builtin.set_fact:
         bella_pki_ca: >-
-          {{ lookup('cosmic_chimps.bella.pki_ca',
+          {{ lookup('jjchiw.bella_baxter.pki_ca',
                project_slug=bella_project_slug,
                environment_slug=bella_env_slug,
                baxter_url=bella_baxter_url,
@@ -126,7 +126,7 @@
     - name: Issue TLS certificate for this host
       ansible.builtin.set_fact:
         bella_tls: >-
-          {{ lookup('cosmic_chimps.bella.pki_issue',
+          {{ lookup('jjchiw.bella_baxter.pki_issue',
                common_name=tls_common_name,
                role_name=bella_pki_role,
                ttl='720h',

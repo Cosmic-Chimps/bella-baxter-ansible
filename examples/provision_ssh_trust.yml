@@ -57,7 +57,7 @@
     - name: Fetch SSH CA public key from Bella Baxter
       ansible.builtin.set_fact:
         bella_ca_public_key: >-
-          {{ lookup('cosmic_chimps.bella.ssh_ca_key',
+          {{ lookup('jjchiw.bella_baxter.ssh_ca_key',
                project_slug=bella_project_slug,
                environment_slug=bella_env_slug,
                baxter_url=bella_baxter_url,
@@ -148,7 +148,7 @@
     - name: Sign SSH public key via Bella Baxter
       ansible.builtin.set_fact:
         signed_certificate: >-
-          {{ lookup('cosmic_chimps.bella.ssh_sign',
+          {{ lookup('jjchiw.bella_baxter.ssh_sign',
                project_slug=bella_project_slug,
                environment_slug=bella_env_slug,
                role_name=bella_ssh_role,

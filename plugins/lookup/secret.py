@@ -77,7 +77,7 @@ EXAMPLES = r"""
   ansible.builtin.debug:
     msg: "DB host is {{ db_host }}"
   vars:
-    db_host: "{{ lookup('cosmic_chimps.bella.secret', 'DB_HOST',
+    db_host: "{{ lookup('jjchiw.bella_baxter.secret', 'DB_HOST',
                   baxter_url='https://api.bella-baxter.io',
                   environment_slug='production',
                   api_key='bax-abc123') }}"
@@ -91,13 +91,13 @@ EXAMPLES = r"""
   ansible.builtin.debug:
     msg: "Password loaded"
   vars:
-    db_password: "{{ lookup('cosmic_chimps.bella.secret', 'DATABASE_PASSWORD') }}"
+    db_password: "{{ lookup('jjchiw.bella_baxter.secret', 'DATABASE_PASSWORD') }}"
 
 # --- Multiple secrets in one call ---
 
 - name: Fetch several secrets at once
   ansible.builtin.set_fact:
-    app_secrets: "{{ lookup('cosmic_chimps.bella.secret',
+    app_secrets: "{{ lookup('jjchiw.bella_baxter.secret',
                       'DB_HOST', 'DB_PORT', 'REDIS_URL',
                       environment_slug='staging',
                       wantlist=True) }}"
@@ -168,7 +168,7 @@ class LookupModule(LookupBase):
             return []
 
         display.vvv(
-            f"[cosmic_chimps.bella.secret] Fetching {len(terms)} key(s) "
+            f"[jjchiw.bella_baxter.secret] Fetching {len(terms)} key(s) "
             f"from environment '{environment_slug}' at {baxter_url}"
         )
 
@@ -182,7 +182,7 @@ class LookupModule(LookupBase):
                 response = client.get_all_secrets(environment_slug)
         except Exception as exc:
             raise AnsibleError(
-                f"[cosmic_chimps.bella.secret] Failed to fetch secrets from Bella Baxter: {exc}"
+                f"[jjchiw.bella_baxter.secret] Failed to fetch secrets from Bella Baxter: {exc}"
             ) from exc
 
         secrets = response.secrets
@@ -197,12 +197,12 @@ class LookupModule(LookupBase):
 
         if missing:
             raise AnsibleError(
-                f"[cosmic_chimps.bella.secret] The following secret key(s) were not found "
+                f"[jjchiw.bella_baxter.secret] The following secret key(s) were not found "
                 f"in environment '{environment_slug}': {missing}"
             )
 
         display.vvv(
-            f"[cosmic_chimps.bella.secret] Successfully resolved {len(terms)} key(s)"
+            f"[jjchiw.bella_baxter.secret] Successfully resolved {len(terms)} key(s)"
         )
         return results
 

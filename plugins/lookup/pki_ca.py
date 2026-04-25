@@ -79,7 +79,7 @@ options:
 EXAMPLES = r"""
 - name: Fetch PKI CA info
   ansible.builtin.set_fact:
-    pki_ca: "{{ lookup('cosmic_chimps.bella.pki_ca',
+    pki_ca: "{{ lookup('jjchiw.bella_baxter.pki_ca',
                   project_slug='my-app',
                   environment_slug='production',
                   baxter_url='https://api.bella-baxter.io',
@@ -154,7 +154,7 @@ class LookupModule(LookupBase):
             raise AnsibleError("api_key is required (option or BELLA_API_KEY env var).")
 
         display.vvv(
-            f"[cosmic_chimps.bella.pki_ca] Fetching PKI CA for "
+            f"[jjchiw.bella_baxter.pki_ca] Fetching PKI CA for "
             f"project_slug={project_slug} environment_slug={environment_slug}"
         )
 
@@ -163,10 +163,10 @@ class LookupModule(LookupBase):
             ca_info = client.get_pki_ca(project_slug, environment_slug)
         except Exception as exc:
             raise AnsibleError(
-                f"[cosmic_chimps.bella.pki_ca] Failed to fetch PKI CA: {exc}"
+                f"[jjchiw.bella_baxter.pki_ca] Failed to fetch PKI CA: {exc}"
             ) from exc
 
-        display.vvv("[cosmic_chimps.bella.pki_ca] Successfully fetched PKI CA")
+        display.vvv("[jjchiw.bella_baxter.pki_ca] Successfully fetched PKI CA")
         return [{
             "certificate": ca_info.certificate,
             "ca_chain": ca_info.ca_chain,

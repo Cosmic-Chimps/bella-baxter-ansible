@@ -2,7 +2,7 @@ name: Publish Ansible Collection to Galaxy
 
 # Ansible Galaxy has no package-registry URL — collections are published via
 # ansible-galaxy CLI authenticated with an API key from Galaxy.
-# Collection: cosmic_chimps.bella  (namespace.name in galaxy.yml)
+# Collection: jjchiw.bella_baxter  (namespace.name in galaxy.yml)
 #
 # Version is set by release-sdk.yml bumping galaxy.yml in the monorepo,
 # then sync-sdk-ansible.yml pushing to this repo. This workflow just builds
@@ -48,7 +48,7 @@ jobs:
         run: pip install ansible-core
 
       - name: Show version being published
-        run: python3 -c "import yaml; d=yaml.safe_load(open('galaxy.yml')); print('Publishing cosmic_chimps.bella', d['version'])"
+        run: python3 -c "import yaml; d=yaml.safe_load(open('galaxy.yml')); print('Publishing jjchiw.bella_baxter', d['version'])"
 
       - name: Build collection archive
         working-directory: ${{ env.SDK_FOLDER }}
@@ -57,7 +57,7 @@ jobs:
       - name: Publish to Ansible Galaxy
         working-directory: ${{ env.SDK_FOLDER }}
         run: |
-          TARBALL=$(ls dist/cosmic_chimps-bella-*.tar.gz | head -1)
+          TARBALL=$(ls dist/jjchiw-bella_baxter-*.tar.gz | head -1)
           ansible-galaxy collection publish "$TARBALL" --api-key "${{ secrets.ANSIBLE_GALAXY_API_KEY }}"
 
   notify:
@@ -71,4 +71,4 @@ jobs:
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
           webhook-type: webhook-trigger
           payload: |
-            text: "${{ needs.publish.result == 'success' && '✅' || '❌' }} *Ansible Galaxy publish (cosmic_chimps.bella)*: ${{ needs.publish.result }}\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            text: "${{ needs.publish.result == 'success' && '✅' || '❌' }} *Ansible Galaxy publish (jjchiw.bella_baxter)*: ${{ needs.publish.result }}\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

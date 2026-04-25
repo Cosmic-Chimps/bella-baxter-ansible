@@ -83,7 +83,7 @@ options:
 
 EXAMPLES = r"""
 - name: Store RDS password
-  cosmic_chimps.bella.secret:
+  jjchiw.bella_baxter.secret:
     baxter_url: "https://baxter.example.com"
     api_key: "{{ bella_api_key }}"
     environment_id: "550e8400-e29b-41d4-a716-446655440000"
@@ -94,7 +94,7 @@ EXAMPLES = r"""
     state: present
 
 - name: Store API key with no description
-  cosmic_chimps.bella.secret:
+  jjchiw.bella_baxter.secret:
     baxter_url: "{{ baxter_url }}"
     api_key: "{{ bella_api_key }}"
     environment_id: "{{ env_id }}"
@@ -104,7 +104,7 @@ EXAMPLES = r"""
     state: present
 
 - name: Remove a deprecated secret (idempotent — safe if key already absent)
-  cosmic_chimps.bella.secret:
+  jjchiw.bella_baxter.secret:
     baxter_url: "{{ baxter_url }}"
     api_key: "{{ bella_api_key }}"
     environment_id: "{{ env_id }}"
@@ -113,7 +113,7 @@ EXAMPLES = r"""
     state: absent
 
 - name: Dry-run — see what would change without touching the API
-  cosmic_chimps.bella.secret:
+  jjchiw.bella_baxter.secret:
     baxter_url: "{{ baxter_url }}"
     api_key: "{{ bella_api_key }}"
     environment_id: "{{ env_id }}"

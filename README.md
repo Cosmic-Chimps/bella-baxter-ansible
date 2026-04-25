@@ -1,4 +1,4 @@
-# cosmic_chimps.bella — Ansible Collection
+# jjchiw.bella_baxter — Ansible Collection
 
 Ansible collection for [Bella Baxter](https://github.com/cosmic-chimps/bella-baxter) — a secret management gateway that proxies secrets from Vault, AWS Secrets Manager, Azure Key Vault, and other providers through a single unified API.
 
@@ -17,13 +17,13 @@ pip install bella-baxter
 ## Installation
 
 ```bash
-ansible-galaxy collection install cosmic_chimps.bella
+ansible-galaxy collection install jjchiw.bella_baxter
 ```
 
 Or pin a specific version:
 
 ```bash
-ansible-galaxy collection install cosmic_chimps.bella:==0.2.0
+ansible-galaxy collection install jjchiw.bella_baxter:==0.2.0
 ```
 
 ## Authentication
@@ -41,25 +41,25 @@ All plugins authenticate using **API keys** (bax-...). These are issued from the
 
 ## Secrets
 
-### Lookup — `cosmic_chimps.bella.secret`
+### Lookup — `jjchiw.bella_baxter.secret`
 
 Reads one or more secret values from Bella Baxter.
 
 ```yaml
 vars:
-  db_password: "{{ lookup('cosmic_chimps.bella.secret', 'DATABASE_URL',
+  db_password: "{{ lookup('jjchiw.bella_baxter.secret', 'DATABASE_URL',
                     baxter_url='https://baxter.example.com',
                     environment_slug='production',
                     api_key='bax-abc123') }}"
 ```
 
-### Module — `cosmic_chimps.bella.secret`
+### Module — `jjchiw.bella_baxter.secret`
 
 Creates, updates, or deletes secrets. Idempotent (`state: absent` on a non-existent key is a no-op).
 
 ```yaml
 - name: Store database password
-  cosmic_chimps.bella.secret:
+  jjchiw.bella_baxter.secret:
     baxter_url: "{{ baxter_url }}"
     api_key: "{{ bella_api_key }}"
     environment_id: "550e8400-e29b-41d4-a716-446655440000"
@@ -75,14 +75,14 @@ See [`examples/read_secrets.yml`](examples/read_secrets.yml) and [`examples/writ
 
 ## SSH Certificate Authority
 
-### Lookup — `cosmic_chimps.bella.ssh_ca_key`
+### Lookup — `jjchiw.bella_baxter.ssh_ca_key`
 
 Fetches the SSH CA public key — write it to `TrustedUserCAKeys` so servers trust certificates signed by Bella.
 
 ```yaml
 - name: Fetch SSH CA public key
   ansible.builtin.set_fact:
-    ssh_ca: "{{ lookup('cosmic_chimps.bella.ssh_ca_key',
+    ssh_ca: "{{ lookup('jjchiw.bella_baxter.ssh_ca_key',
                   project_slug='my-app',
                   environment_slug='production',
                   baxter_url='https://api.bella-baxter.io',
@@ -95,14 +95,14 @@ Fetches the SSH CA public key — write it to `TrustedUserCAKeys` so servers tru
     mode: '0644'
 ```
 
-### Lookup — `cosmic_chimps.bella.ssh_sign`
+### Lookup — `jjchiw.bella_baxter.ssh_sign`
 
 Signs an SSH public key and returns the signed certificate.
 
 ```yaml
 - name: Sign SSH public key
   ansible.builtin.set_fact:
-    signed_cert: "{{ lookup('cosmic_chimps.bella.ssh_sign',
+    signed_cert: "{{ lookup('jjchiw.bella_baxter.ssh_sign',
                       project_slug='my-app',
                       environment_slug='production',
                       role_name='ops-team',
@@ -128,13 +128,13 @@ Bella Baxter uses a private Certificate Authority (CA) backed by Vault/OpenBao. 
 
 Typical use case: provision TLS certificates for internal microservices, databases, and APIs without going through Let's Encrypt.
 
-### Module — `cosmic_chimps.bella.pki_role`
+### Module — `jjchiw.bella_baxter.pki_role`
 
 Creates or deletes a PKI role. Roles control which common names can be issued certificates and with what TTL / key constraints.
 
 ```yaml
 - name: Create PKI role for internal services
-  cosmic_chimps.bella.pki_role:
+  jjchiw.bella_baxter.pki_role:
     baxter_url: "{{ bella_baxter_url }}"
     api_key: "{{ bella_api_key }}"
     project_slug: my-app
@@ -164,14 +164,14 @@ Creates or deletes a PKI role. Roles control which common names can be issued ce
 | `key_bits` | int | No | Key size in bits |
 | `state` | str | No | `present` or `absent` (default: `present`) |
 
-### Lookup — `cosmic_chimps.bella.pki_ca`
+### Lookup — `jjchiw.bella_baxter.pki_ca`
 
 Fetches PKI CA information. Returns a dict with `certificate`, `ca_chain`, and `acme_directory_url`.
 
 ```yaml
 - name: Fetch PKI CA info
   ansible.builtin.set_fact:
-    pki_ca: "{{ lookup('cosmic_chimps.bella.pki_ca',
+    pki_ca: "{{ lookup('jjchiw.bella_baxter.pki_ca',
                   project_slug='my-app',
                   environment_slug='production',
                   baxter_url='https://api.bella-baxter.io',
@@ -185,7 +185,7 @@ Fetches PKI CA information. Returns a dict with `certificate`, `ca_chain`, and `
   notify: Run update-ca-certificates
 ```
 
-### Lookup — `cosmic_chimps.bella.pki_issue`
+### Lookup — `jjchiw.bella_baxter.pki_issue`
 
 Issues a TLS certificate. Returns a dict with `certificate`, `private_key`, `ca_chain`, `issuing_ca`, `serial_number`, and `expiration`.
 
@@ -194,7 +194,7 @@ Issues a TLS certificate. Returns a dict with `certificate`, `private_key`, `ca_
 ```yaml
 - name: Issue TLS certificate
   ansible.builtin.set_fact:
-    tls: "{{ lookup('cosmic_chimps.bella.pki_issue',
+    tls: "{{ lookup('jjchiw.bella_baxter.pki_issue',
                common_name='api.internal',
                role_name='internal-services',
                ttl='720h',
@@ -260,13 +260,13 @@ pip install bella-baxter
 ## Installation
 
 ```bash
-ansible-galaxy collection install cosmic_chimps.bella
+ansible-galaxy collection install jjchiw.bella_baxter
 ```
 
 Or pin a specific version:
 
 ```bash
-ansible-galaxy collection install cosmic_chimps.bella:==0.1.0
+ansible-galaxy collection install jjchiw.bella_baxter:==0.1.0
 ```
 
 ## Authentication
@@ -280,7 +280,7 @@ All plugins authenticate using **API key pairs** (client ID + client secret). Th
 | `client_secret` | `BELLA_CLIENT_SECRET` | API key client secret |
 | `environment_slug` | `BELLA_ENV_SLUG` | Environment slug (lookup only) |
 
-## Lookup Plugin — `cosmic_chimps.bella.secret`
+## Lookup Plugin — `jjchiw.bella_baxter.secret`
 
 Reads one or more secret values from Bella Baxter. Designed for use in `vars:` blocks.
 
@@ -298,7 +298,7 @@ Reads one or more secret values from Bella Baxter. Designed for use in `vars:` b
 **Inline parameters:**
 ```yaml
 vars:
-  db_password: "{{ lookup('cosmic_chimps.bella.secret', 'DATABASE_URL',
+  db_password: "{{ lookup('jjchiw.bella_baxter.secret', 'DATABASE_URL',
                     baxter_url='https://baxter.example.com',
                     environment_slug='production',
                     client_id='bella_ak_abc123',
@@ -314,13 +314,13 @@ export BELLA_ENV_SLUG=production
 ```
 ```yaml
 vars:
-  db_password: "{{ lookup('cosmic_chimps.bella.secret', 'DATABASE_URL') }}"
+  db_password: "{{ lookup('jjchiw.bella_baxter.secret', 'DATABASE_URL') }}"
 ```
 
 **Multiple secrets at once:**
 ```yaml
 vars:
-  credentials: "{{ lookup('cosmic_chimps.bella.secret',
+  credentials: "{{ lookup('jjchiw.bella_baxter.secret',
                     'DB_HOST', 'DB_PORT', 'DB_NAME',
                     environment_slug='production') }}"
   # credentials == ['db.prod.internal', '5432', 'myapp']
@@ -331,14 +331,14 @@ vars:
 - name: Print each secret
   debug:
     msg: "{{ item }}"
-  with_cosmic_chimps.bella.secret:
+  with_jjchiw.bella_baxter.secret:
     - DATABASE_URL
     - REDIS_URL
 ```
 
 See [`examples/read_secrets.yml`](examples/read_secrets.yml) for a complete playbook.
 
-## Module — `cosmic_chimps.bella.secret`
+## Module — `jjchiw.bella_baxter.secret`
 
 Creates, updates, or deletes secrets in Bella Baxter. Idempotent: `state: absent` on a non-existent key is a no-op.
 
@@ -368,7 +368,7 @@ Creates, updates, or deletes secrets in Bella Baxter. Idempotent: `state: absent
 
 ```yaml
 - name: Store database password
-  cosmic_chimps.bella.secret:
+  jjchiw.bella_baxter.secret:
     baxter_url: "{{ baxter_url }}"
     client_id: "{{ bella_client_id }}"
     client_secret: "{{ bella_client_secret }}"
@@ -380,7 +380,7 @@ Creates, updates, or deletes secrets in Bella Baxter. Idempotent: `state: absent
     state: present
 
 - name: Remove deprecated secret
-  cosmic_chimps.bella.secret:
+  jjchiw.bella_baxter.secret:
     baxter_url: "{{ baxter_url }}"
     client_id: "{{ bella_client_id }}"
     client_secret: "{{ bella_client_secret }}"

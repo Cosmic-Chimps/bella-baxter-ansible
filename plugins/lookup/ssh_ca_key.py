@@ -78,7 +78,7 @@ EXAMPLES = r"""
 # --- Using environment slug ---
 - name: Read SSH CA public key
   ansible.builtin.set_fact:
-    ssh_ca: "{{ lookup('cosmic_chimps.bella.ssh_ca_key',
+    ssh_ca: "{{ lookup('jjchiw.bella_baxter.ssh_ca_key',
                   project_slug='my-app',
                   environment_slug='production',
                   baxter_url='https://api.bella-baxter.io',
@@ -92,7 +92,7 @@ EXAMPLES = r"""
 
 - name: Write CA key from environment variables
   ansible.builtin.set_fact:
-    ssh_ca: "{{ lookup('cosmic_chimps.bella.ssh_ca_key',
+    ssh_ca: "{{ lookup('jjchiw.bella_baxter.ssh_ca_key',
                   project_slug=lookup('env', 'BELLA_PROJECT_SLUG'),
                   environment_slug=lookup('env', 'BELLA_ENV_SLUG')) }}"
 """
@@ -165,7 +165,7 @@ class LookupModule(LookupBase):
             )
 
         display.vvv(
-            f"[cosmic_chimps.bella.ssh_ca_key] Fetching CA public key "
+            f"[jjchiw.bella_baxter.ssh_ca_key] Fetching CA public key "
             f"for project_slug={project_slug} environment_slug={environment_slug}"
         )
 
@@ -174,10 +174,10 @@ class LookupModule(LookupBase):
             ca_info = client.get_ssh_ca_public_key(project_slug, environment_slug)
         except Exception as exc:
             raise AnsibleError(
-                f"[cosmic_chimps.bella.ssh_ca_key] Failed to fetch SSH CA public key: {exc}"
+                f"[jjchiw.bella_baxter.ssh_ca_key] Failed to fetch SSH CA public key: {exc}"
             ) from exc
 
-        display.vvv("[cosmic_chimps.bella.ssh_ca_key] Successfully fetched CA public key")
+        display.vvv("[jjchiw.bella_baxter.ssh_ca_key] Successfully fetched CA public key")
         return [ca_info.ca_public_key]
 
     # ── Helpers ───────────────────────────────────────────────────────────────

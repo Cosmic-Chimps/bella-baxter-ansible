@@ -101,7 +101,7 @@ options:
 EXAMPLES = r"""
 - name: Issue TLS certificate for api.internal
   ansible.builtin.set_fact:
-    tls_cert: "{{ lookup('cosmic_chimps.bella.pki_issue',
+    tls_cert: "{{ lookup('jjchiw.bella_baxter.pki_issue',
                     common_name='api.internal',
                     role_name='internal-services',
                     ttl='720h',
@@ -211,7 +211,7 @@ class LookupModule(LookupBase):
             raise AnsibleError("api_key is required (option or BELLA_API_KEY env var).")
 
         display.vvv(
-            f"[cosmic_chimps.bella.pki_issue] Issuing certificate for cn='{common_name}' "
+            f"[jjchiw.bella_baxter.pki_issue] Issuing certificate for cn='{common_name}' "
             f"role='{role_name}' project_slug={project_slug} environment_slug={environment_slug}"
         )
 
@@ -227,10 +227,10 @@ class LookupModule(LookupBase):
             cert = client.issue_pki_certificate(body, project_slug, environment_slug)
         except Exception as exc:
             raise AnsibleError(
-                f"[cosmic_chimps.bella.pki_issue] Failed to issue certificate: {exc}"
+                f"[jjchiw.bella_baxter.pki_issue] Failed to issue certificate: {exc}"
             ) from exc
 
-        display.vvv(f"[cosmic_chimps.bella.pki_issue] Certificate issued (serial={cert.serial_number})")
+        display.vvv(f"[jjchiw.bella_baxter.pki_issue] Certificate issued (serial={cert.serial_number})")
         return [{
             "certificate": cert.certificate,
             "private_key": cert.private_key,

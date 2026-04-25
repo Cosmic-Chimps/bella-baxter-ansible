@@ -110,7 +110,7 @@ options:
 
 EXAMPLES = r"""
 - name: Create PKI role for internal services
-  cosmic_chimps.bella.pki_role:
+  jjchiw.bella_baxter.pki_role:
     baxter_url: https://api.bella-baxter.io
     api_key: "{{ lookup('env', 'BELLA_API_KEY') }}"
     project_slug: my-app
@@ -123,7 +123,7 @@ EXAMPLES = r"""
     state: present
 
 - name: Remove a PKI role
-  cosmic_chimps.bella.pki_role:
+  jjchiw.bella_baxter.pki_role:
     baxter_url: https://api.bella-baxter.io
     api_key: "{{ lookup('env', 'BELLA_API_KEY') }}"
     project_slug: my-app

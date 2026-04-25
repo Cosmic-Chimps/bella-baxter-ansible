@@ -96,7 +96,7 @@ EXAMPLES = r"""
 # --- Sign the control node's SSH key and store the cert ---
 - name: Sign SSH public key via Bella Baxter
   ansible.builtin.set_fact:
-    signed_cert: "{{ lookup('cosmic_chimps.bella.ssh_sign',
+    signed_cert: "{{ lookup('jjchiw.bella_baxter.ssh_sign',
                       project_slug='my-app',
                       environment_slug='production',
                       role_name='ops-team',
@@ -184,7 +184,7 @@ class LookupModule(LookupBase):
             )
 
         display.vvv(
-            f"[cosmic_chimps.bella.ssh_sign] Signing key for role='{role_name}' "
+            f"[jjchiw.bella_baxter.ssh_sign] Signing key for role='{role_name}' "
             f"project_slug={project_slug} environment_slug={environment_slug}"
         )
 
@@ -200,10 +200,10 @@ class LookupModule(LookupBase):
             )
         except Exception as exc:
             raise AnsibleError(
-                f"[cosmic_chimps.bella.ssh_sign] Failed to sign SSH key: {exc}"
+                f"[jjchiw.bella_baxter.ssh_sign] Failed to sign SSH key: {exc}"
             ) from exc
 
-        display.vvv("[cosmic_chimps.bella.ssh_sign] SSH key signed successfully")
+        display.vvv("[jjchiw.bella_baxter.ssh_sign] SSH key signed successfully")
         return [signed.signed_key]
 
     # ── Helpers ───────────────────────────────────────────────────────────────
