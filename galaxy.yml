@@ -15,7 +15,7 @@ tags:
   - pki
   - tls
   - certificates
-repository: https://github.com/cosmic-chimps/bella-baxter
-documentation: https://github.com/cosmic-chimps/bella-baxter/tree/main/apps/sdk/ansible
-issues: https://github.com/cosmic-chimps/bella-baxter/issues
+repository: https://github.com/cosmic-chimps/bella-baxter-ansible
+documentation: https://github.com/cosmic-chimps/bella-baxter-ansible/README.md
+issues: https://github.com/cosmic-chimps/bella-baxter-ansible/issues
 dependencies: {}
