@@ -10,7 +10,7 @@ signed certificate (OpenSSH certificate format).
 
 Requires the ``bella-baxter`` Python package::
 
-    pip install bella-baxter
+    pip install --pre bella-baxter
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ author:
   - Cosmic Chimps <hello@cosmicchimps.io>
 version_added: "0.2.0"
 requirements:
-  - bella-baxter (Python package, C(pip install bella-baxter))
+  - bella-baxter (Python package, C(pip install --pre bella-baxter))
 options:
   project_slug:
     description:
@@ -133,7 +133,7 @@ try:
 except ImportError as _exc:  # pragma: no cover
     raise AnsibleError(
         "The 'bella-baxter' Python package is required for this lookup plugin. "
-        "Install it with: pip install bella-baxter"
+        "Install it with: pip install --pre bella-baxter"
     ) from _exc
 
 

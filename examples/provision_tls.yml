@@ -15,7 +15,7 @@
 #      server (nginx / apache2) if needed.
 #
 # Prerequisites:
-#   pip install bella-baxter
+#   pip install --pre bella-baxter
 #
 #   Set environment variables (or pass as extra vars):
 #       BELLA_BAXTER_URL    — e.g. https://api.bella-baxter.io

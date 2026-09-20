@@ -9,8 +9,14 @@ Ansible collection for [Bella Baxter](https://github.com/cosmic-chimps/bella-bax
 - [`bella-baxter`](https://pypi.org/project/bella-baxter/) Python SDK installed in the Python environment Ansible uses
 
 ```bash
-pip install bella-baxter
+pip install --pre bella-baxter
 ```
+
+> **Why `--pre`.** The SDK ships as `0.1.1-preview.N`, which PEP 440 normalises to `0.1.1rcN` — a
+> pre-release. `pip` skips pre-releases unless asked, so omitting `--pre` resolves *no version at
+> all* rather than installing an older one. Every release on PyPI is
+> currently a pre-release, so `--pre` is the contract until a stable `0.1.x` ships. (npm is
+> unaffected: its `latest` dist-tag points at the preview and `npm install` honours it regardless.)
 
 > **Note:** The `bella-baxter` package is the only Python dependency. It includes the Kiota-generated API client — no need for `requests` or other HTTP libraries.
 
@@ -254,7 +260,7 @@ Ansible collection for [Bella Baxter](https://github.com/cosmic-chimps/bella-bax
 - [`bella-baxter`](https://pypi.org/project/bella-baxter/) Python SDK installed in the Python environment Ansible uses
 
 ```bash
-pip install bella-baxter
+pip install --pre bella-baxter
 ```
 
 ## Installation

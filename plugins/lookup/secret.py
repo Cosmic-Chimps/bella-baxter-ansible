@@ -12,7 +12,7 @@ cheap as looking up one.
 
 Requires the ``bella-baxter`` Python package::
 
-    pip install bella-baxter
+    pip install --pre bella-baxter
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ author:
   - Cosmic Chimps <hello@cosmicchimps.io>
 version_added: "0.1.0"
 requirements:
-  - bella-baxter >= 0.1 (Python package, C(pip install bella-baxter))
+  - bella-baxter >= 0.1 (Python package, C(pip install --pre bella-baxter))
 options:
   _terms:
     description:
@@ -126,7 +126,7 @@ try:
 except ImportError as _exc:  # pragma: no cover
     raise AnsibleError(
         "The 'bella_baxter' Python package is required for this lookup plugin. "
-        "Install it with: pip install bella-baxter"
+        "Install it with: pip install --pre bella-baxter"
     ) from _exc
 
 

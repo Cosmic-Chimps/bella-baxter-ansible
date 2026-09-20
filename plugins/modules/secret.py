@@ -12,7 +12,7 @@ that does not exist is a no-op (``changed: false``).
 
 Requires the ``bella-baxter`` Python package::
 
-    pip install bella-baxter
+    pip install --pre bella-baxter
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ author:
   - Cosmic Chimps <hello@cosmicchimps.io>
 version_added: "0.1.0"
 requirements:
-  - bella-baxter >= 0.1 (Python package, C(pip install bella-baxter))
+  - bella-baxter >= 0.1 (Python package, C(pip install --pre bella-baxter))
 options:
   baxter_url:
     description:
@@ -243,7 +243,7 @@ def run_module() -> None:
         module.fail_json(
             msg=(
                 "The 'bella_baxter' Python package is required for this module. "
-                "Install it with: pip install bella-baxter\n\n"
+                "Install it with: pip install --pre bella-baxter\n\n"
                 f"Import error details:\n{BELLA_IMPORT_ERROR}"
             )
         )
