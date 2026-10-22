@@ -9,8 +9,12 @@ Ansible collection for [Bella Baxter](https://github.com/cosmic-chimps/bella-bax
 - [`bella-baxter`](https://pypi.org/project/bella-baxter/) Python SDK installed in the Python environment Ansible uses
 
 ```bash
-pip install --pre bella-baxter
+pip install --pre 'bella-baxter>=0.1.1rc138,<0.2'
 ```
+
+> **Why the bounds.** The plugins call the SDK's methods by name and by parameter, so an SDK whose signatures
+> change would break a playbook without an error you could trace to the upgrade (#1482). The same bound is in
+> `requirements.txt`, which `ansible-builder` reads when it builds an execution environment.
 
 > **Why `--pre`.** The SDK ships as `0.1.1-preview.N`, which PEP 440 normalises to `0.1.1rcN` — a
 > pre-release. `pip` skips pre-releases unless asked, so omitting `--pre` resolves *no version at
@@ -61,19 +65,33 @@ vars:
 
 ### Module — `jjchiw.bella_baxter.secret`
 
-Creates, updates, or deletes secrets. Idempotent (`state: absent` on a non-existent key is a no-op).
+Creates, updates, or deletes secrets (`state: absent` on a non-existent key is a no-op).
 
 ```yaml
 - name: Store database password
   jjchiw.bella_baxter.secret:
     baxter_url: "{{ baxter_url }}"
     api_key: "{{ bella_api_key }}"
-    environment_id: "550e8400-e29b-41d4-a716-446655440000"
-    provider_id: "550e8400-e29b-41d4-a716-446655440001"
+    environment_slug: "production"
+    provider: "vault-main"
     key: "DATABASE_PASSWORD"
     value: "{{ generated_password }}"
     state: present
+  no_log: true
 ```
+
+Requirements for writing:
+
+- An API key with the **Manager** role or higher. A Consumer key is read-only and the API answers 403.
+- A `bella-baxter` SDK release that provides `set_secret` / `delete_secret` (newer than `0.1.1-preview.139`).
+  The module fails with a message saying so when the installed SDK is older.
+- Environments are addressed by **slug**. `environment_id` is no longer accepted (the API has no route by
+  UUID) and fails with a message that points at `environment_slug`. `provider` is the provider's slug or UUID
+  (`provider_id` still works as an alias). Without `project_slug` / `environment_slug` the module uses the
+  API key's own project and environment.
+- `state: present` always reports `changed: true` (there is no single-secret read to compare against).
+  `state: absent` reports `changed: false` when the key was already gone.
+- A scope-limited key can create keys inside its scope.
 
 See [`examples/read_secrets.yml`](examples/read_secrets.yml) and [`examples/write_secrets.yml`](examples/write_secrets.yml).
 
@@ -260,7 +278,7 @@ Ansible collection for [Bella Baxter](https://github.com/cosmic-chimps/bella-bax
 - [`bella-baxter`](https://pypi.org/project/bella-baxter/) Python SDK installed in the Python environment Ansible uses
 
 ```bash
-pip install --pre bella-baxter
+pip install --pre 'bella-baxter>=0.1.1rc138,<0.2'
 ```
 
 ## Installation
@@ -346,17 +364,30 @@ See [`examples/read_secrets.yml`](examples/read_secrets.yml) for a complete play
 
 ## Module — `jjchiw.bella_baxter.secret`
 
-Creates, updates, or deletes secrets in Bella Baxter. Idempotent: `state: absent` on a non-existent key is a no-op.
+Creates, updates, or deletes secrets in Bella Baxter. `state: absent` on a non-existent key is a no-op.
+
+Requirements for writing:
+
+- An API key with the **Manager** role or higher. A Consumer key is read-only and the API answers 403.
+- A `bella-baxter` SDK release that provides `set_secret` / `delete_secret` (newer than `0.1.1-preview.139`).
+  The module fails with a message saying so when the installed SDK is older.
+- Environments are addressed by **slug**. `environment_id` is no longer accepted (the API has no route by
+  UUID) and fails with a message that points at `environment_slug`. `provider` is the provider's slug or UUID
+  (`provider_id` still works as an alias). Without `project_slug` / `environment_slug` the module uses the
+  API key's own project and environment.
+- `state: present` always reports `changed: true` (there is no single-secret read to compare against).
+  `state: absent` reports `changed: false` when the key was already gone.
+- A scope-limited key can create keys inside its scope.
 
 ### Parameters
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `baxter_url` | str | Yes | Baxter API base URL |
-| `client_id` | str | Yes | API key client ID (**no_log**) |
-| `client_secret` | str | Yes | API key client secret (**no_log**) |
-| `environment_id` | str | Yes | Target environment UUID |
-| `provider_id` | str | Yes | Target provider UUID |
+| `api_key` | str | Yes | API key, Manager role or higher (**no_log**) |
+| `project_slug` | str | No | Project slug. Defaults to the API key's project |
+| `environment_slug` | str | No | Environment slug (never a UUID). Defaults to the API key's environment |
+| `provider` | str | Yes | Provider slug or UUID (alias: `provider_id`) |
 | `key` | str | Yes | Secret key name |
 | `value` | str | No\* | Secret value (**no_log**). Required when `state=present` |
 | `description` | str | No | Human-readable description |
@@ -376,22 +407,22 @@ Creates, updates, or deletes secrets in Bella Baxter. Idempotent: `state: absent
 - name: Store database password
   jjchiw.bella_baxter.secret:
     baxter_url: "{{ baxter_url }}"
-    client_id: "{{ bella_client_id }}"
-    client_secret: "{{ bella_client_secret }}"
-    environment_id: "550e8400-e29b-41d4-a716-446655440000"
-    provider_id: "550e8400-e29b-41d4-a716-446655440001"
+    api_key: "{{ bella_api_key }}"
+    project_slug: "my-app"
+    environment_slug: "production"
+    provider: "vault-main"
     key: "DATABASE_PASSWORD"
     value: "{{ generated_password }}"
     description: "Production database master password"
     state: present
+  no_log: true
 
 - name: Remove deprecated secret
   jjchiw.bella_baxter.secret:
     baxter_url: "{{ baxter_url }}"
-    client_id: "{{ bella_client_id }}"
-    client_secret: "{{ bella_client_secret }}"
-    environment_id: "550e8400-e29b-41d4-a716-446655440000"
-    provider_id: "550e8400-e29b-41d4-a716-446655440001"
+    api_key: "{{ bella_api_key }}"
+    environment_slug: "production"
+    provider: "vault-main"
     key: "OLD_API_KEY"
     state: absent
 ```

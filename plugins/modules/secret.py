@@ -7,12 +7,17 @@
 Bella Baxter — ``secret`` Ansible module.
 
 Creates, updates, or deletes secrets in the Bella Baxter secret management
-gateway.  The module is idempotent: requesting ``state: absent`` for a key
-that does not exist is a no-op (``changed: false``).
+gateway.  Requesting ``state: absent`` for a key that does not exist is a
+no-op (``changed: false``).  ``state: present`` always reports a change: the
+API has no single-secret read to compare against.
+
+The module calls ``BaxterClient.set_secret`` / ``delete_secret`` BY NAME; the
+guard test in ``tests/unit/plugins/modules/test_secret.py`` checks every call
+against the methods the real SDK source defines (#1500).
 
 Requires the ``bella-baxter`` Python package::
 
-    pip install --pre bella-baxter
+    pip install --pre 'bella-baxter>=0.1.1rc138,<0.2'
 """
 
 from __future__ import annotations
@@ -24,14 +29,25 @@ short_description: Manage secrets in Bella Baxter
 description:
   - Creates, updates (upserts), or deletes secrets in the Bella Baxter secret
     management gateway.
-  - When C(state=absent) and the key does not exist the task reports
-    C(changed=false) and makes no API call (idempotent).
+  - Writing needs an API key with the B(Manager) role or higher. A Consumer key
+    is read-only and the API answers 403.
+  - A scope-limited key can create keys inside its scope. The API refuses to
+    update a key such a key may not read yet, and the SDK then creates it
+    instead, which also stamps the key's scopes on the new secret.
+  - With C(state=present) the module always reports C(changed=true) when it
+    writes. The API has no single-secret read, so the value cannot be compared
+    first.
+  - When C(state=absent) and the key does not exist the API answers 404 and the
+    task reports C(changed=false).
   - Supports Ansible check mode (C(--check)) — no API calls are made.
 author:
   - Cosmic Chimps <hello@cosmicchimps.io>
 version_added: "0.1.0"
 requirements:
-  - bella-baxter >= 0.1 (Python package, C(pip install --pre bella-baxter))
+  - bella-baxter >= 0.1.1rc138, < 0.2 (Python package, C(pip install --pre 'bella-baxter>=0.1.1rc138,<0.2'))
+  - A bella-baxter release that provides C(BaxterClient.set_secret) and
+    C(BaxterClient.delete_secret), newer than C(0.1.1-preview.139). The module
+    fails with a message saying so when the installed SDK lacks them.
 options:
   baxter_url:
     description:
@@ -40,20 +56,32 @@ options:
     required: true
   api_key:
     description:
-      - Bella Baxter API key (bax-...).
+      - Bella Baxter API key (bax-...). Manager role or higher.
     type: str
     required: true
     no_log: true
+  project_slug:
+    description:
+      - Slug of the project that owns the environment.
+      - Defaults to the project the API key belongs to.
+    type: str
+  environment_slug:
+    description:
+      - Slug of the target environment (e.g. C(production)).
+      - The API addresses environments by slug, never by UUID.
+      - Defaults to the environment the API key belongs to.
+    type: str
   environment_id:
     description:
-      - UUID of the target Bella Baxter environment.
+      - Not supported. The Bella Baxter API addresses environments by slug, so
+        the module fails when this is set. Use O(environment_slug).
     type: str
-    required: true
-  provider_id:
+  provider:
     description:
-      - UUID of the target provider within the environment.
+      - The provider that holds the secret, by slug (e.g. C(vault-main)) or by UUID.
     type: str
     required: true
+    aliases: [provider_id]
   key:
     description:
       - Name of the secret key (e.g. C(DATABASE_PASSWORD)).
@@ -70,7 +98,6 @@ options:
     description:
       - Optional human-readable description for the secret.
     type: str
-    default: ""
   state:
     description:
       - C(present) — create or update the secret (upsert).
@@ -85,29 +112,31 @@ EXAMPLES = r"""
   jjchiw.bella_baxter.secret:
     baxter_url: "https://baxter.example.com"
     api_key: "{{ bella_api_key }}"
-    environment_id: "550e8400-e29b-41d4-a716-446655440000"
-    provider_id: "550e8400-e29b-41d4-a716-446655440001"
+    project_slug: "my-app"
+    environment_slug: "production"
+    provider: "vault-main"
     key: "RDS_PASSWORD"
     value: "{{ generated_password }}"
     description: "RDS master password — rotated by Ansible"
     state: present
+  no_log: true
 
-- name: Store API key with no description
+- name: Store API key in the API key's own project and environment
   jjchiw.bella_baxter.secret:
     baxter_url: "{{ baxter_url }}"
     api_key: "{{ bella_api_key }}"
-    environment_id: "{{ env_id }}"
-    provider_id: "{{ provider_id }}"
+    provider: "550e8400-e29b-41d4-a716-446655440001"
     key: "STRIPE_SECRET_KEY"
     value: "sk_live_..."
     state: present
+  no_log: true
 
 - name: Remove a deprecated secret (idempotent — safe if key already absent)
   jjchiw.bella_baxter.secret:
     baxter_url: "{{ baxter_url }}"
     api_key: "{{ bella_api_key }}"
-    environment_id: "{{ env_id }}"
-    provider_id: "{{ provider_id }}"
+    environment_slug: "production"
+    provider: "vault-main"
     key: "OLD_LEGACY_KEY"
     state: absent
 
@@ -115,8 +144,8 @@ EXAMPLES = r"""
   jjchiw.bella_baxter.secret:
     baxter_url: "{{ baxter_url }}"
     api_key: "{{ bella_api_key }}"
-    environment_id: "{{ env_id }}"
-    provider_id: "{{ provider_id }}"
+    environment_slug: "production"
+    provider: "vault-main"
     key: "DB_PASSWORD"
     value: "newpassword"
     state: present
@@ -125,7 +154,10 @@ EXAMPLES = r"""
 
 RETURN = r"""
 changed:
-  description: Whether the module made a change to the secret.
+  description:
+    - Whether the module made a change to the secret.
+    - Always C(true) for C(state=present) when it writes, because the API has no single-secret read to compare against.
+    - For C(state=absent), C(false) when the key was already absent.
   returned: always
   type: bool
 key:
@@ -152,6 +184,17 @@ except ImportError:
     BELLA_IMPORT_ERROR = traceback.format_exc()
 
 
+# What the module needs from the SDK. They are called by NAME with keyword arguments, so a signature change
+# in the SDK is a test failure here (tests/unit/plugins/modules/test_secret.py reads the real client.py),
+# not a playbook that breaks without anyone tracing it to the upgrade.
+REQUIRED_SDK_METHODS = ("set_secret", "delete_secret")
+
+SDK_TOO_OLD = (
+    "this module needs a bella-baxter release that provides set_secret/delete_secret "
+    "(upgrade the SDK: pip install --pre --upgrade bella-baxter)"
+)
+
+
 def _build_client(module: AnsibleModule) -> BaxterClient:
     """Instantiate a BaxterClient from module parameters."""
     options = BaxterClientOptions(
@@ -161,30 +204,52 @@ def _build_client(module: AnsibleModule) -> BaxterClient:
     return BaxterClient(options)
 
 
+def _scope(module: AnsibleModule) -> dict:
+    """Project and environment as the SDK's keyword arguments. None means: the API key's own."""
+    return {
+        "project_slug": module.params.get("project_slug") or None,
+        "env_slug": module.params.get("environment_slug") or None,
+    }
+
+
+def _failure(action: str, key: str, exc: BaseException) -> str:
+    """
+    A message that names the key and the HTTP status, nothing else.
+
+    The exception text is left out on purpose: it comes from the server or the transport, and the secret
+    value travelled in the same request, so it is not something to interpolate into task output.
+    """
+    status = getattr(exc, "response_status_code", None)
+    detail = f"HTTP {status}" if status is not None else type(exc).__name__
+    message = f"Failed to {action} secret '{key}' ({detail})."
+    if status == 403:
+        message += " Writing secrets needs an API key with the Manager role or higher."
+    elif status == 404:
+        message += " Check project_slug, environment_slug and provider: one of them does not exist."
+    return message
+
+
 def _present(module: AnsibleModule, client: BaxterClient) -> dict:
     """
     Ensure the secret exists with the desired value (upsert).
 
-    Always calls ``update_secret`` (which the Baxter API treats as an upsert),
-    so the module always reports ``changed=True`` when not in check mode —
-    Bella Baxter does not expose a read-single-secret endpoint that would let
-    us do a true idempotency check on the value.
+    ``client.set_secret`` is an upsert on the API, so the module reports ``changed=True`` whenever it is not
+    in check mode: Bella Baxter does not expose a read-single-secret endpoint that would let us do a true
+    idempotency check on the value.
     """
-    env_id: str = module.params["environment_id"]
-    provider_id: str = module.params["provider_id"]
     key: str = module.params["key"]
-    value: str = module.params["value"]
-    description: str = module.params.get("description", "")
 
     if not module.check_mode:
         try:
-            client.update_secret(env_id, provider_id, key, value, description)
-        except Exception as exc:
-            module.fail_json(
-                msg=f"Failed to upsert secret '{key}': {exc}",
-                key=key,
-                state="present",
+            client.set_secret(
+                key,
+                module.params["value"],
+                provider=module.params["provider"],
+                description=module.params.get("description"),
+                **_scope(module),
             )
+        except Exception as exc:
+            module.fail_json(msg=_failure("write", key, exc), key=key, state="present")
 
     return {"changed": True, "key": key, "state": "present"}
 
@@ -193,10 +258,8 @@ def _absent(module: AnsibleModule, client: BaxterClient) -> dict:
     """
     Ensure the secret does not exist.
 
-    A 404 from the API is treated as "already absent" — no change.
+    ``client.delete_secret`` answers False when the API said 404 (already absent): no change.
     """
-    env_id: str = module.params["environment_id"]
-    provider_id: str = module.params["provider_id"]
     key: str = module.params["key"]
 
     if module.check_mode:
@@ -204,30 +267,24 @@ def _absent(module: AnsibleModule, client: BaxterClient) -> dict:
         return {"changed": True, "key": key, "state": "absent"}
 
     try:
-        client.delete_secret(env_id, provider_id, key)
-        return {"changed": True, "key": key, "state": "absent"}
+        deleted = client.delete_secret(key, provider=module.params["provider"], **_scope(module))
     except Exception as exc:
-        # Inspect the exception text for a 404-like indicator.
-        exc_str = str(exc)
-        if "404" in exc_str or "Not Found" in exc_str or "not found" in exc_str.lower():
-            # Key already absent — idempotent no-op.
-            return {"changed": False, "key": key, "state": "absent"}
-        module.fail_json(
-            msg=f"Failed to delete secret '{key}': {exc}",
-            key=key,
-            state="absent",
-        )
+        module.fail_json(msg=_failure("delete", key, exc), key=key, state="absent")
+
+    return {"changed": bool(deleted), "key": key, "state": "absent"}
 
 
 def run_module() -> None:
     argument_spec = dict(
         baxter_url=dict(type="str", required=True),
         api_key=dict(type="str", required=True, no_log=True),
-        environment_id=dict(type="str", required=True),
-        provider_id=dict(type="str", required=True),
+        project_slug=dict(type="str"),
+        environment_slug=dict(type="str"),
+        environment_id=dict(type="str"),
+        provider=dict(type="str", required=True, aliases=["provider_id"]),
         key=dict(type="str", required=True),
         value=dict(type="str", default=None, no_log=True),
-        description=dict(type="str", default=""),
+        description=dict(type="str"),
         state=dict(type="str", default="present", choices=["present", "absent"]),
     )
 
@@ -239,20 +296,32 @@ def run_module() -> None:
         ],
     )
 
+    if module.params.get("environment_id"):
+        module.fail_json(
+            msg=(
+                "environment_id is not supported: the Bella Baxter API addresses environments by slug, "
+                "not by UUID. Use environment_slug (and project_slug, if it is not the API key's own)."
+            )
+        )
+
     if not HAS_BELLA_BAXTER:
         module.fail_json(
             msg=(
                 "The 'bella_baxter' Python package is required for this module. "
-                "Install it with: pip install --pre bella-baxter\n\n"
+                "Install it with: pip install --pre 'bella-baxter>=0.1.1rc138,<0.2'\n\n"
                 f"Import error details:\n{BELLA_IMPORT_ERROR}"
             )
         )
+
+    if not all(hasattr(BaxterClient, name) for name in REQUIRED_SDK_METHODS):
+        module.fail_json(msg=SDK_TOO_OLD)
 
     state: str = module.params["state"]
 
     try:
         client = _build_client(module)
     except Exception as exc:
+        # Nothing has been sent yet, so there is no secret value in this exception.
         module.fail_json(msg=f"Failed to initialise BaxterClient: {exc}")
 
     with client:

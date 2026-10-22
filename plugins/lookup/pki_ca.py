@@ -11,7 +11,7 @@ connections made by internal services.
 
 Requires the ``bella-baxter`` Python package::
 
-    pip install --pre bella-baxter
+    pip install --pre 'bella-baxter>=0.1.1rc138,<0.2'
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ author:
   - Cosmic Chimps <hello@cosmicchimps.io>
 version_added: "0.2.0"
 requirements:
-  - bella-baxter (Python package, C(pip install --pre bella-baxter))
+  - bella-baxter >= 0.1.1rc138, < 0.2 (Python package, C(pip install --pre 'bella-baxter>=0.1.1rc138,<0.2'))
 options:
   project_slug:
     description:
@@ -129,7 +129,7 @@ try:
 except ImportError as _exc:  # pragma: no cover
     raise AnsibleError(
         "The 'bella-baxter' Python package is required for this lookup plugin. "
-        "Install it with: pip install --pre bella-baxter"
+        "Install it with: pip install --pre 'bella-baxter>=0.1.1rc138,<0.2'"
     ) from _exc
 
 

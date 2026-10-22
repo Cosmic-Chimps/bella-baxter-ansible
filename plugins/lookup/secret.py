@@ -10,9 +10,9 @@ gateway.  All secrets for the target environment are retrieved in a single
 API call (Baxter caches them in Redis), so looking up multiple keys is as
 cheap as looking up one.
 
-Requires the ``bella-baxter`` Python package::
+Requires the ``bella-baxter`` Python package, at a version this plugin was written against::
 
-    pip install --pre bella-baxter
+    pip install --pre 'bella-baxter>=0.1.1rc138,<0.2'
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ author:
   - Cosmic Chimps <hello@cosmicchimps.io>
 version_added: "0.1.0"
 requirements:
-  - bella-baxter >= 0.1 (Python package, C(pip install --pre bella-baxter))
+  - bella-baxter >= 0.1.1rc138, < 0.2 (Python package, C(pip install --pre 'bella-baxter>=0.1.1rc138,<0.2'))
 options:
   _terms:
     description:
@@ -48,6 +48,18 @@ options:
     ini:
       - section: bella_baxter
         key: url
+  project_slug:
+    description:
+      - Slug of the Bella Baxter project that owns the environment (e.g. C(my-app)).
+      - Optional. An API key is scoped to one project, so when this is not set the
+        project is discovered from the key itself.
+      - Falls back to the C(BELLA_PROJECT_SLUG) environment variable.
+    type: str
+    env:
+      - name: BELLA_PROJECT_SLUG
+    ini:
+      - section: bella_baxter
+        key: project_slug
   environment_slug:
     description:
       - Slug of the Bella Baxter environment to read from (e.g. C(production)).
@@ -79,12 +91,14 @@ EXAMPLES = r"""
   vars:
     db_host: "{{ lookup('jjchiw.bella_baxter.secret', 'DB_HOST',
                   baxter_url='https://api.bella-baxter.io',
+                  project_slug='my-app',
                   environment_slug='production',
                   api_key='bax-abc123') }}"
 
 # --- Using environment variables (recommended for CI/CD) ---
 # export BELLA_BAXTER_URL=https://api.bella-baxter.io
 # export BELLA_API_KEY=bax-abc123
+# export BELLA_PROJECT_SLUG=my-app   # optional: an API key already knows its project
 # export BELLA_ENV_SLUG=production
 
 - name: Read a single secret via env vars
@@ -126,7 +140,7 @@ try:
 except ImportError as _exc:  # pragma: no cover
     raise AnsibleError(
         "The 'bella_baxter' Python package is required for this lookup plugin. "
-        "Install it with: pip install --pre bella-baxter"
+        "Install it with: pip install --pre 'bella-baxter>=0.1.1rc138,<0.2'"
     ) from _exc
 
 
@@ -147,6 +161,8 @@ class LookupModule(LookupBase):
 
         baxter_url = self._resolve("baxter_url", "BELLA_BAXTER_URL", kwargs)
         environment_slug = self._resolve("environment_slug", "BELLA_ENV_SLUG", kwargs)
+        # Optional: empty means "the project this API key belongs to" (the SDK discovers it).
+        project_slug = self._resolve("project_slug", "BELLA_PROJECT_SLUG", kwargs) or None
         api_key = self._resolve("api_key", "BELLA_API_KEY", kwargs)
 
         if not baxter_url:
@@ -167,9 +183,11 @@ class LookupModule(LookupBase):
         if not terms:
             return []
 
+        scope = f"environment '{environment_slug}'"
+        if project_slug:
+            scope += f" of project '{project_slug}'"
         display.vvv(
-            f"[jjchiw.bella_baxter.secret] Fetching {len(terms)} key(s) "
-            f"from environment '{environment_slug}' at {baxter_url}"
+            f"[jjchiw.bella_baxter.secret] Fetching {len(terms)} key(s) from {scope} at {baxter_url}"
         )
 
         options = BaxterClientOptions(
@@ -179,7 +197,12 @@ class LookupModule(LookupBase):
 
         try:
             with BaxterClient(options) as client:
-                response = client.get_all_secrets(environment_slug)
+                # By NAME: the SDK's first positional parameter is the PROJECT, not the environment
+                # (#1482). Passing the environment positionally sent it as the project and always 404'd.
+                response = client.get_all_secrets(
+                    project_slug=project_slug,
+                    env_slug=environment_slug,
+                )
         except Exception as exc:
             raise AnsibleError(
                 f"[jjchiw.bella_baxter.secret] Failed to fetch secrets from Bella Baxter: {exc}"

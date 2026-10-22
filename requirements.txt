@@ -1,0 +1,4 @@
+# Python dependency of the jjchiw.bella_baxter collection (read by ansible-builder for execution environments).
+# Bounded on purpose: the plugins call bella_baxter.BaxterClient by method and parameter name (#1482).
+# `rc138` is a pre-release, so this specifier admits pre-releases of bella-baxter without `--pre`.
+bella-baxter>=0.1.1rc138,<0.2

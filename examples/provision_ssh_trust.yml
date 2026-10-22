@@ -61,9 +61,7 @@
                project_slug=bella_project_slug,
                environment_slug=bella_env_slug,
                baxter_url=bella_baxter_url,
-               api_key=bella_api_key,
-               
-) }}
+               api_key=bella_api_key) }}
       delegate_to: localhost
       run_once: true
 
@@ -154,9 +152,7 @@
                role_name=bella_ssh_role,
                public_key=(pubkey_content.content | b64decode).strip(),
                baxter_url=bella_baxter_url,
-               api_key=bella_api_key,
-               
-) }}
+               api_key=bella_api_key) }}
 
     - name: Derive certificate path (foo.pub → foo-cert.pub)
       ansible.builtin.set_fact:
