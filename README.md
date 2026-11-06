@@ -5,7 +5,7 @@ Ansible collection for [Bella Baxter](https://github.com/cosmic-chimps/bella-bax
 ## Requirements
 
 - Ansible 2.14+
-- Python 3.9+
+- Python 3.10+
 - [`bella-baxter`](https://pypi.org/project/bella-baxter/) Python SDK installed in the Python environment Ansible uses
 
 ```bash
@@ -274,7 +274,7 @@ Ansible collection for [Bella Baxter](https://github.com/cosmic-chimps/bella-bax
 ## Requirements
 
 - Ansible 2.14+
-- Python 3.9+
+- Python 3.10+
 - [`bella-baxter`](https://pypi.org/project/bella-baxter/) Python SDK installed in the Python environment Ansible uses
 
 ```bash
